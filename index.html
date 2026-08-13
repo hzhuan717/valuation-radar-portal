@@ -805,7 +805,9 @@ function renderKline(svgId, tipId, opts, st){
 
   let lo = Math.min(...rows.map(r=>r.l)), hi = Math.max(...rows.map(r=>r.h));
   let pmin, pmax;
-  if(opts.showBands && hasV && canExec){
+  if(opts.showBands && hasV){
+    // 无论 decision_usable 或参考级：三个估值锚都必须可见（用户要求三区间标注），
+    // 统一把 V_low/V_high 纳入纵轴范围；色带仅在 usable 时绘制
     pmin = Math.min(lo * .96, V.vLow * .88);
     pmax = Math.max(hi * 1.04, V.vHigh * 1.12);
   } else if(opts.srLines){
@@ -930,20 +932,25 @@ function renderKline(svgId, tipId, opts, st){
          + '</g>';
     });
   } else if(opts.anchorLines && hasV){
-    /* 参考级（reference_only）：中性灰虚线 + 不可执行标识，不压缩主图 */
+    /* 参考级（reference_only）：中性灰虚线三区间 + 不可执行标识。
+       三个估值锚必须全部可见（用户要求），纵轴范围已在上方把 V_low/V_high 纳入。 */
     const refs = [
       { val:V.vLow,  label:'参考 V_low  ¥'+fmt0(V.vLow) },
       { val:V.vMid,  label:'参考 V_mid  ¥'+fmt0(V.vMid) },
       { val:V.vHigh, label:'参考 V_high  ¥'+fmt0(V.vHigh) },
     ];
-    let gap = 0;
-    refs.forEach((l) => {
-      if(!(l.val >= pmin && l.val <= pmax)) return;
-      let ly = y(l.val) + gap;
-      gap += 24;
-      s += '<line x1="'+ML+'" y1="'+(ly-gap+24).toFixed(1)+'" x2="'+(W-MR)+'" y2="'+(ly-gap+24).toFixed(1)+'" stroke="var(--sub2)" stroke-width="1" stroke-dasharray="2 5" opacity=".7"/>'
+    const rys = refs.map(l => y(l.val));
+    for(let i=1; i<rys.length; i++){
+      if(Math.abs(rys[i]-rys[i-1]) < 46) rys[i] = rys[i] >= rys[i-1] ? rys[i-1] + 26 : rys[i-1] - 26;
+    }
+    refs.forEach((l, idx) => {
+      const ly = rys[idx];
+      const key = idx===0?'v_low':(idx===1?'v_mid':'v_high');
+      s += '<g style="cursor:pointer" onclick="openModal(\''+key+'\', detailBody(CUR,\''+key+'\'))">'
+         + '<line x1="'+ML+'" y1="'+(y(l.val)).toFixed(1)+'" x2="'+(W-MR)+'" y2="'+(y(l.val)).toFixed(1)+'" stroke="var(--sub2)" stroke-width="1" stroke-dasharray="2 5" opacity=".7"/>'
          + '<rect x="'+(W-MR+8)+'" y="'+(ly-15).toFixed(1)+'" width="'+(MR-14)+'" height="30" rx="15" fill="var(--glass-strong)" stroke="var(--hair2)" stroke-width=".5"/>'
-         + '<text x="'+(W-MR+16)+'" y="'+(ly+4).toFixed(1)+'" font-size="11" fill="var(--sub2)" font-weight="600" font-family="SF Mono,monospace">'+l.label+'</text>';
+         + '<text x="'+(W-MR+16)+'" y="'+(ly+4).toFixed(1)+'" font-size="11" fill="var(--sub2)" font-weight="600" font-family="SF Mono,monospace">'+l.label+'</text>'
+         + '</g>';
     });
     s += '<rect x="'+(ML+2)+'" y="'+(MT+4)+'" width="118" height="24" rx="12" fill="var(--glass-strong)" stroke="var(--hair2)" stroke-width=".5"/>'
        + '<text x="'+(ML+14)+'" y="'+(MT+20)+'" font-size="10.5" fill="var(--sub2)" font-weight="600">参考区间 · 不可执行</text>';
