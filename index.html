@@ -733,6 +733,7 @@ function detailBody(st, key){
       {text:'保守/基准/乐观', eq:`bear ${fmt2(st.eps_bear)} ｜ base ${fmt2(st.eps_base)} ｜ bull ${fmt2(st.eps_bull)}`},
       {text:'统一 T+1/FY1 口径，禁止任意选年度拟合结论（v2 引擎强制）', src:'A级：用未来年份利润定价；D级：FY1口径由引擎强制执行'}], 'A')
     + ntmFormulaHTML(st);
+  }
   if(key==='v_low') return '<div class="formula-box"><b>V_low = 保守EPS × 合理PE低档（买入启动区）</b></div>' +
     stepsHTML([
       {text:`保守EPS = ${fmt2(st.eps_bear)} 元/股`},
